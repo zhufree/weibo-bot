@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "weibo-bot"
+version = "0.1.0"
+description = ""
+authors = ["zhufree <zhufree2013@gmail.com>"]
+readme = "README.md"
+packages = [{include = "weibo_bot"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+playwright = "^1.29.0"
+pyquery = "^1.4.3"
+httpx = "^0.23.1"
+apscheduler = "^3.9.1.post1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

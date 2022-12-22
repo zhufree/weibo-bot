@@ -1,3 +1,8 @@
+weibo_state.json
+config.py
+poetry.lock
+/data
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

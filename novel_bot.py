@@ -103,10 +103,10 @@ def append_data(old_data):
 
 
 def init_data():
-    page = 0
+    page = 1
     delta_days = 0
     new_novel_list = []
-    while delta_days < 20.0:
+    while delta_days < 10.0:
         res = httpx.get(search_url.format(page), headers={'Cookie': jjwxc_cookies})
         res.encoding = 'gb2312'
         doc = pq(res.text)
@@ -120,6 +120,7 @@ def init_data():
             publish_time = tds[7].text()
             # print(author, title, url, wordcount, publish_time)
             # novel_data = get_detail_page(url)
+            print(title)
             new_novel_list.append({
                 'title': title,
                 'author': author,
@@ -132,6 +133,7 @@ def init_data():
             time_stamp = time.mktime(time.strptime(publish_time,"%Y-%m-%d %H:%M:%S"))
             delta_time = time.time() - time_stamp
             delta_days = delta_time // (24*3600)
+        print(delta_days)
         page += 1
     with open('data/novel_data.json', 'w', encoding='utf-8') as save:
         save.write(json.dumps(new_novel_list, ensure_ascii=False))
@@ -213,6 +215,7 @@ def post_weibo(content):
 # asyncio.run(main())
 
 if __name__ == '__main__':
+    # init_data()
     scheduler = BlockingScheduler()
     scheduler.add_job(main, "cron", hour='7-23', minute='0,20,40', jitter=5, id="novel_bot")
     scheduler.start()

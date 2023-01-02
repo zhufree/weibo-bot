@@ -16,13 +16,20 @@ def main():
     else:
         data_list =  json.loads(content)
     # decide which novel which chapter
-    selected_novel, select_chap = select_novel(data_list, 0)
+    selected_novel, novel_detail = select_novel(data_list, 0)
+    current_chap = selected_novel['current_chap']
+    selected_novel['current_chap'] += 1
+    select_chap = novel_detail['chap_list'][current_chap]
     # grab content
     post_content = ''
     if selected_novel != None:
-        post_content = f'#{selected_novel["title"]}# by {selected_novel["author"]}\n'
+        post_content = f'#{selected_novel["title"]}# by {selected_novel["author"]}  收藏数：{novel_detail["collection_count"]}\n'
+    if len(novel_detail["tags"]) > 0:
+        for t in novel_detail["tags"]:
+            post_content += f'#{t}# '
+        post_content += '\n'
     if select_chap != None:
-        post_content += f'发表于{select_chap["time"]}\n'
+        post_content += f'第{current_chap+1}章 发表于{select_chap["time"]}\n'
         chapter_content = get_chapter_content(select_chap['url'])
         # in case content is too long
         if len(chapter_content) > 4500:
@@ -41,34 +48,37 @@ def main():
 
 def select_novel(data_list, retry):
     if retry > 10:
-        print(f'retry = {retry}, return None')
+        print(f'尝试次数={retry}, return None')
         return None, None
     selected_novel = random.choice(data_list)
-    print(f'retry = {retry}, try{selected_novel["title"]}')
+    print(f'尝试次数={retry}, try{selected_novel["title"]}')
     current_chap = selected_novel['current_chap']
     novel_detail = get_detail_page(selected_novel['url'])
-    print(f'retry = {retry}, 获取章节{novel_detail}')
+    if novel_detail == None:
+        retry += 1
+        return select_novel(data_list, retry)
+    print(f'尝试次数={retry}, 获取章节{novel_detail}')
     if current_chap >= novel_detail['chap_count']:
         print(f'{selected_novel["title"]}章节数不足')
         if novel_detail['status'] != '连载':
             data_list.remove(selected_novel)
         retry += 1
-        select_novel(data_list, retry)
+        return select_novel(data_list, retry)
     elif (novel_detail['vip_chap_id'] != None and current_chap >= novel_detail['vip_chap_id'] - 1) or novel_detail == None:
         print(f'{selected_novel["title"]}入V或锁文')
         data_list.remove(selected_novel)
         retry += 1
-        select_novel(data_list, retry)
+        return select_novel(data_list, retry)
     else:
         # update chap count
-        selected_novel['current_chap'] += 1
-        return selected_novel, novel_detail['chap_list'][current_chap]
+        print(f'选中{selected_novel}\n章节{novel_detail}')
+        return selected_novel, novel_detail
 
 
 search_url = 'https://www.jjwxc.net/bookbase.php?xx3=3&sortType=3&isfinish=1&page={}'
 
 def append_data(old_data):
-    page = 0
+    page = 1
     exist = False
     new_novel_list = []
     old_titles = [i['title'] for i in old_data]
@@ -148,8 +158,21 @@ def get_detail_page(url):
     if chap_table == None: # locked
         return None
     bid = url.split('=')[-1]
+    tag_items = doc('div.smallreadbody a').items()
+    tag_dict = {
+        item.text(): item.attr('href') for item in tag_items
+    }
+    tag_remove_list = []
+    for i in tag_dict.keys():
+        if '?bq=' not in tag_dict[i] or len(i) > 4:
+            tag_remove_list.append(i)
+    for i in tag_remove_list:
+        tag_dict.pop(i)
+    tags = [i.strip() for i in tag_dict.keys() if len(i.strip()) > 0]
     try:
         httpx.get(f'https://fun.zhufree.fun/book/update/{bid}') # update book to baihehub btw
+    except Exception as e:
+        pass
     finally:
         pass
     chapters = chap_table('tr[itemprop~=chapter]').items()
@@ -173,8 +196,13 @@ def get_detail_page(url):
             'desc': chap_desc,
             'time': chap_time
         })
+    type = doc('span[itemprop=genre]').text()
+    tags.append(type.split('-')[2])
     return {
         'collection_count': doc('span[itemprop=collectedCount]').text(),
+        'type': type,
+        'style': doc('.rightul li:nth-child(3) span').text(),
+        'tags': tags,
         'status': doc('span[itemprop=updataStatus]').text(),
         'chap_count': len(chap_list),
         'vip_chap_id': vip_chap_id,
@@ -205,7 +233,7 @@ def post_weibo(content):
         # page.get_by_text("公开").click()
         # page.get_by_role("button", name="粉丝").click()
         page.get_by_role("button", name="发送").click()
-        page.get_by_text("发布成功").wait_for()
+        time.sleep(1)
         page.close()
         context.storage_state(path='weibo_state.json')
         context.close()
@@ -216,6 +244,7 @@ def post_weibo(content):
 
 if __name__ == '__main__':
     # init_data()
-    scheduler = BlockingScheduler()
-    scheduler.add_job(main, "cron", hour='7-23', minute='0,20,40', jitter=5, id="novel_bot")
-    scheduler.start()
+    main()
+    # scheduler = BlockingScheduler()
+    # scheduler.add_job(main, "cron", hour='7-23', minute='0,20,40', jitter=20, id="novel_bot", max_instances=100)
+    # scheduler.start()

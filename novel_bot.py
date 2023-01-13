@@ -244,7 +244,7 @@ def post_weibo(content):
 
 if __name__ == '__main__':
     # init_data()
-    main()
-    # scheduler = BlockingScheduler()
-    # scheduler.add_job(main, "cron", hour='7-23', minute='0,20,40', jitter=20, id="novel_bot", max_instances=100)
-    # scheduler.start()
+    # main()
+    scheduler = BlockingScheduler()
+    scheduler.add_job(main, "cron", hour='7-23', minute='0,20,40', jitter=20, id="novel_bot", max_instances=100)
+    scheduler.start()

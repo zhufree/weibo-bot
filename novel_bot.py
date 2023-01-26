@@ -26,7 +26,7 @@ def main():
         post_content = f'#{selected_novel["title"]}# by {selected_novel["author"]}  收藏数：{novel_detail["collection_count"]}\n'
     if len(novel_detail["tags"]) > 0:
         for t in novel_detail["tags"]:
-            post_content += f'#{t}# '
+            post_content += f'#{t}#  '
         post_content += '\n'
     if select_chap != None:
         post_content += f'第{current_chap+1}章 发表于{select_chap["time"]}\n'
@@ -196,11 +196,12 @@ def get_detail_page(url):
             'desc': chap_desc,
             'time': chap_time
         })
-    type = doc('span[itemprop=genre]').text()
-    tags.append(type.split('-')[2])
+    genre = doc('span[itemprop=genre]').text()
+    if genre != None:
+        tags.append(genre.split('-')[2])
     return {
         'collection_count': doc('span[itemprop=collectedCount]').text(),
-        'type': type,
+        'type': genre,
         'style': doc('.rightul li:nth-child(3) span').text(),
         'tags': tags,
         'status': doc('span[itemprop=updataStatus]').text(),

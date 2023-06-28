@@ -197,7 +197,7 @@ def get_detail_page(url):
             'time': chap_time
         })
     genre = doc('span[itemprop=genre]').text()
-    if genre != None:
+    if genre != None and len(genre.split('-')) > 2:
         tags.append(genre.split('-')[2])
     return {
         'collection_count': doc('span[itemprop=collectedCount]').text(),
@@ -215,7 +215,7 @@ def get_chapter_content(url):
     detail_res = httpx.get(url)
     detail_res.encoding = 'gb2312'
     doc = pq(detail_res.text)
-    div = doc('.noveltext')
+    div = doc('.novelbody:nth-child(2) > div')
     div.remove('div:first-child')
     div.remove('div[align=right]')
     content = div.text()

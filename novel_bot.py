@@ -15,38 +15,34 @@ def main():
         data_list = init_data()
     else:
         data_list =  json.loads(content)
+    if len(data_list) == 0:
+        data_list = init_data()
     # decide which novel which chapter
-    if len(data_list) > 0:
-        selected_novel, novel_detail = select_novel(data_list, 0)
-        current_chap = selected_novel['current_chap']
-        selected_novel['current_chap'] += 1
-        select_chap = novel_detail['chap_list'][current_chap]
-        # grab content
-        post_content = ''
-        if selected_novel != None:
-            post_content = f'#{selected_novel["title"]}# by {selected_novel["author"]}  收藏数：{novel_detail["collection_count"]}\n'
-        if len(novel_detail["tags"]) > 0:
-            for t in novel_detail["tags"]:
-                post_content += f'#{t}#  '
-            post_content += '\n'
-        if select_chap != None:
-            post_content += f'第{current_chap+1}章 发表于{select_chap["time"]}\n'
-            chapter_content = get_chapter_content(select_chap['url'])
-            # in case content is too long
-            if len(chapter_content) > 4500:
-                post_content += chapter_content[:4500] + '...'
-            else:
-                post_content += chapter_content
-            post_content += f'\n阅读原文：{selected_novel["url"]}'
-        # post weibo
-        if post_content != '':
-            post_weibo(post_content)
-            # update novel data
-            new_data = append_data(data_list)
-            write_file = open('data/novel_data.json', 'w', encoding='utf-8')
-            write_file.write(json.dumps(new_data, ensure_ascii=False))
-            write_file.close()
-    else:
+    selected_novel, novel_detail = select_novel(data_list, 0)
+    current_chap = selected_novel['current_chap']
+    selected_novel['current_chap'] += 1
+    select_chap = novel_detail['chap_list'][current_chap]
+    # grab content
+    post_content = ''
+    if selected_novel != None:
+        post_content = f'#{selected_novel["title"]}# by {selected_novel["author"]}  收藏数：{novel_detail["collection_count"]}\n'
+    if len(novel_detail["tags"]) > 0:
+        for t in novel_detail["tags"]:
+            post_content += f'#{t}#  '
+        post_content += '\n'
+    if select_chap != None:
+        post_content += f'第{current_chap+1}章 发表于{select_chap["time"]}\n'
+        chapter_content = get_chapter_content(select_chap['url'])
+        # in case content is too long
+        if len(chapter_content) > 4500:
+            post_content += chapter_content[:4500] + '...'
+        else:
+            post_content += chapter_content
+        post_content += f'\n阅读原文：{selected_novel["url"]}'
+    # post weibo
+    if post_content != '':
+        post_weibo(post_content)
+        # update novel data
         new_data = append_data(data_list)
         write_file = open('data/novel_data.json', 'w', encoding='utf-8')
         write_file.write(json.dumps(new_data, ensure_ascii=False))
@@ -98,8 +94,8 @@ def append_data(old_data):
             author = tds[0].text()
             title = tds[1].text()
             url = 'https://www.jjwxc.net/' + tds[1]('a').attr('href')
-            wordcount = tds[5].text()
-            publish_time = tds[7].text()
+            wordcount = tds[4].text()
+            publish_time = tds[6].text()
             # print(author, title, url, wordcount, publish_time)
             # novel_data = get_detail_page(url)
             if title in old_titles:
@@ -132,8 +128,8 @@ def init_data():
             author = tds[0].text()
             title = tds[1].text()
             url = 'https://www.jjwxc.net/' + tds[1]('a').attr('href')
-            wordcount = tds[5].text()
-            publish_time = tds[7].text()
+            wordcount = tds[4].text()
+            publish_time = tds[6].text()
             # print(author, title, url, wordcount, publish_time)
             # novel_data = get_detail_page(url)
             print(title)

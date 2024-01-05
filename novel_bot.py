@@ -4,7 +4,7 @@ from pyquery import PyQuery as pq
 from playwright.sync_api import sync_playwright
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-def main():
+def new_novel_post():
     print('tick')
     # get novel list
     save_file = open('data/novel_data.json', 'r+', encoding='utf-8')
@@ -245,9 +245,30 @@ def post_weibo(content):
 # import asyncio
 # asyncio.run(main())
 
+def refresh_end_novel():
+    httpx.get('https://strapi.zhufree.fun/api/custom/refresh-recent-end')
+
+def end_novel_post():
+    res = httpx.get('https://strapi.zhufree.fun/api/books?filters[recentEnd][$eq]=true&fields[0]=title&fields[1]=cover&fields[2]=url&fields[3]=collectionCount&fields[4]=wordcount'
+                    '&populate[author]=true&populate[tags]=true')
+    end_novel_list = res.json()['data']
+    content = '最近晋江完结百合文：\n'
+    for n in end_novel_list:
+        author_name = n['attributes']['author']['data']['attributes']['name']
+        content += f'#{n["attributes"]["title"]}# by {author_name} {n["attributes"]["collectionCount"]}收藏 {n["attributes"]["wordcount"]}字\n'
+        for t in n['attributes']['tags']['data']:
+            content += f'#{t["attributes"]["name"]}#  '
+        content += f'\n'
+        content += f'链接：{n["attributes"]["url"]}\n'
+    # print(content)
+    post_weibo(content)
+    
+
 if __name__ == '__main__':
     # init_data()
-    # main()
+    # new_novel_post()
+    # end_novel_post()
     scheduler = BlockingScheduler()
-    scheduler.add_job(main, "cron", hour='7-23', minute='0,20,40', jitter=20, id="novel_bot", max_instances=100)
+    scheduler.add_job(new_novel_post, "cron", hour='7-23', minute='0,20,40', jitter=20, id="novel_bot", max_instances=100)
+    scheduler.add_job(end_novel_post, 'interval', days=3)
     scheduler.start()
